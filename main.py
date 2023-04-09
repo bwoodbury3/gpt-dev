@@ -38,7 +38,8 @@ def try_feature_request(args: Args):
     instruction = args.feature
 
     print("INPUT FILE:")
-    print(input_text)
+    for line in input_text.split("\n"):
+        print(f"\t{line}")
 
     resp = openai.Edit.create(
         model=args.model,
@@ -49,7 +50,8 @@ def try_feature_request(args: Args):
     output_text = resp.choices[0].text
 
     print("OUTPUT FILE:")
-    print(output_text)
+    for line in output_text.split("\n"):
+        print(f"\t{line}")
 
     repo.write(file_to_modify, output_text)
 
