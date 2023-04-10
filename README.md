@@ -14,10 +14,7 @@ $ pip3 install -r requirements.txt
 
 ## Usage:
 ```
-$ python main.py \
-    --repo-path=local/path/to/repo \
-    --file-to-modify=server.js \
-    --feature="Fix this bug: Error: SQLITE_ERROR: table suggestions already exists"
+$ python main.py --url https://github.com/bwoodbury3/gpt-dev
 ```
 
 # Example
@@ -40,4 +37,3 @@ OUTPUT FILE:
 ```
 
 ![after](img/readme-after.png "After")
-
