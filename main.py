@@ -34,13 +34,15 @@ def read_api_key(path: str = API_KEY_PATH) -> str:
         raise e
 
 
-def is_text_file(path: str):
+def is_valid_text_file(path: str):
     """
     Checks whether the file is a text file.
     """
     try:
         with open(path, "r", encoding="utf-8") as f:
-            f.read()
+            text = f.read()
+            if len(text) > 6000:
+                return False
             return True
     except UnicodeDecodeError:
         return False
@@ -77,9 +79,12 @@ def try_feature_request(instruction: str, repo: GithubRepo):
     files = repo.files
     relevant_files = get_relevant_files(instruction, files)
 
+    assert len(relevant_files) > 0
+
     for filename in relevant_files:
         # TODO: DALL-E integration for image files, lol.
-        if not is_text_file(filename):
+        if not is_valid_text_file(filename):
+            print(f"Ignoring {filename}")
             continue
 
         print(f"INPUT FILE: {filename}")
@@ -119,7 +124,7 @@ def get_commit_message(instruction: str):
         temperature=FilesModel.temperature,
         presence_penalty=2.0,
     )
-    msg = resp.choices[0].text
+    msg = resp.choices[0].text.strip()
     print(f"Commit message: {msg}")
     return msg
 
