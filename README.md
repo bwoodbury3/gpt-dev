@@ -5,10 +5,15 @@ and modifies files in-place. When it's actually good enough, integrate with
 github. For now, a command line tool.
 
 ## Quick start
+
+[![main](img/main.png "Ellie Main")](https://www.youtube.com/watch?v=v1sY9JjKsP8&t=3m33s)
+
 ```
+
 $ mkdir ../secret
 $ echo "${OPENAI_API_KEY}" > ../secret/openai.key
 $ python3 -m venv gpt-dev-venv
+$ source ./gpt-dev-venv/bin/activate
 $ pip3 install -r requirements.txt
 ```
 
@@ -17,10 +22,31 @@ $ pip3 install -r requirements.txt
 $ python main.py \
     --repo-path=local/path/to/repo \
     --file-to-modify=server.js \
-    --feature="Fix this bug: Error: SQLITE_ERROR: table suggestions already exists"
+```
+$ python main.py --feature="Fix this bug: Error: SQLITE_ERROR: table suggestions already exists"
 ```
 
-# Example
+## Example:
+
+```
+$ git clone git@github.com:OpenAI/gpt-3.git ../gpt-3
+$ cd ../gpt-3
+$ python main.py \
+	--feature="Make the card background blue" \
+	--repo-path="." \
+	--file-to-modify="doc/examples/card.html"
+Indexing repository: gpt-3 (@/Users/rif/IdeaProjects/gpt-3)
+INPUT FILE:
+    ...
+OUTPUT FILE:
+    ...
+```
+
+![gpt-ex](img/gpt-ex.png "GPT Example")
+
+
+
+## Not-GPT Example:
 
 Created a static website with an `index.html`.
 
@@ -99,4 +125,3 @@ OUTPUT FILE:
 
 	</html>
 ```
-
