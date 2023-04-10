@@ -17,9 +17,16 @@ class GithubRepo:
     """
 
     def __init__(self, url: str):
+    A new github repository to work with.
         """
         Initialize a new github repository.
 
+
+        Example:
+            "https://github.com/bwoodbury3/gpt-dev"
+
+        Returns:
+            github_repo.GithubRepo: The newly initialzed repository.
         Args:
             url: The url to the repository.
                  e.g.: "https://github.com/bwoodbury3/gpt-dev"
@@ -68,6 +75,12 @@ class GithubRepo:
 
     def clone(self, dir: str):
         """
+
+        Example:
+            "/home/user/repos/OSS/L0rdCafe/gpt-bored"
+
+        Returns:
+            None: The repository has been cloned.
         Clone out the repository.
 
         Args:
@@ -91,6 +104,12 @@ class GithubRepo:
 
         # Start from a clean slate.
         self._git(["reset", "--hard", "HEAD"])
+        """
+        Fetch issues relevant to this repository.
+
+        Returns:
+            [{issue}]: All issues for the repository.
+        """
         self._git(["checkout", self.branch])
         self._git(["fetch"])
         self._git(["reset", "--hard", f"origin/{self.branch}"])
@@ -122,12 +141,21 @@ class GithubRepo:
         self.branch = branchname
 
     def commit_and_push(self, commit_msg: str):
+
+        Args:
+            commit_msg: The commit message. e.g. "fixed a bug."
+
+        Returns:
+            None: The commit is done.
         """
         Push local branch upstream.
         """
         self._git(["commit", "-am", commit_msg])
         self._git(["push", "--set-upstream", "origin", self.branch])
 
+
+        Returns:
+            The contents of the file as a string.
     def read(self, filename: str) -> str:
         """
         Reads the contents of a file in the repository.
@@ -143,6 +171,9 @@ class GithubRepo:
         Writes the contents to a file in the repository.
 
         Args:
+
+        Returns:
+            None: The contents are written.
             filename: The filename to query.
             text: The text to write.
         """
