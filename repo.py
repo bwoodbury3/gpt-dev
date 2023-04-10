@@ -4,62 +4,83 @@ Module for handling a brand new repo.
 
 from gitignore_parser import parse_gitignore
 import os
+import re
+import requests
+import subprocess
 
 
-class Repo:
+class GithubRepo:
     """
-    Handles a new repository.
+    Handles a github repository
     """
 
-    def __init__(self, path: str, gitcontext: bool = True):
+    def __init__(self, url: str):
         """
-        Initialize a new repository.
+        Initialize a new github repository.
 
         Args:
-            path: The path to the repository.
-            gitcontext: Whether to train on the git context. Probably want to
-                        turn this one off for gigantic repos.
+            url: The url to the repository.
+                 e.g.: "https://github.com/bwoodbury3/gpt-dev"
         """
-        self.repo_path = os.path.abspath(path)
-        self.repo_name = os.path.basename(self.repo_path)
-        self.files = []
+        self.url = url
+        self.api_url = re.sub(
+            r"(https://github.com/)([\w-]+)/([\w-]+)(/.*)?",
+            r"https://api.github.com/repos/\2/\3/issues",
+            self.url,
+        )
+        self.dir = None
 
-        print(f"Indexing repository: {self.repo_name} (@{self.repo_path})")
+    @property
+    def files(self):
+        if not self.dir:
+            raise ValueError("Repository has not been checked out.")
 
-        gitignore_file = os.path.join(self.repo_path, ".gitignore")
-        if not os.path.exists(gitignore_file):
-            raise ValueError("No .gitignore file found in repository")
-        matches = parse_gitignore(gitignore_file, base_dir=self.repo_path)
+        # Use the git ls-files command to get a list of all files in the repository
+        result = subprocess.run(
+            ["git", "-C", self.dir, "ls-files"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if result.returncode != 0:
+            raise ValueError("Could not get list of files in repository.")
 
-        # Index all files in this repository. Ignore anything in the .gitignore
-        # or .git directory.
-        for root, _, files in os.walk(self.repo_path):
-            for filename in files:
-                full_path = os.path.join(root, filename)
-                if ".git/" in full_path:
-                    continue
-                elif not matches(full_path):
-                    self.files.append(full_path)
+        # Decode the byte string output and return a list of files
+        return result.stdout.decode("utf-8").splitlines()
 
-    def _get_file(self, filename: str) -> str:
+    def checkout(self, dir: str):
         """
-        Query a file from the repo, return a path to that file.
+        Check out the repository.
 
         Args:
-            filename: The filename to search for.
+            dir: The directory to checkout.
         """
-        matches = [
-            file
-            for file in self.files
-            if file.endswith(filename)
-            and os.path.basename(file) == os.path.basename(filename)
-        ]
-        if len(matches) > 1:
-            raise ValueError(f"Filename {filename} is ambiguous: {matches}")
-        elif len(matches) == 0:
-            raise ValueError(f"Could not find file {filename} in {self.files}")
-        else:
-            return matches[0]
+        if os.path.isdir(os.path.join(dir, ".git")):
+            self.dir = dir
+            print("Repository already checked out, skipping.")
+            return
+
+        # Clone the repository into the given directory
+        result = subprocess.run(
+            ["git", "clone", self.url, self.dir],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if result.returncode != 0:
+            raise ValueError("Could not check out repository.")
+
+        self.dir = dir
+
+    def get_issues(self):
+        # Make the API request to get the issues
+        response = requests.get(self.api_url)
+
+        # Check if the request was successful
+        if response.status_code != 200:
+            print(f"Error: Could not get issues from {self.api_url}")
+            raise ValueError("Could not search for issues.")
+
+        # Parse the JSON response and extract the issue titles
+        return response.json()
 
     def read(self, filename: str) -> str:
         """
@@ -68,11 +89,10 @@ class Repo:
         Args:
             filename: The filename to query.
         """
-        path = self._get_file(filename)
-        with open(path, "r") as f:
+        with open(os.path.join(self.dir, filename), "r") as f:
             return f.read()
 
-    def write(self, filename: str, text: str):
+    def write(self, filename: str, text: str) -> str:
         """
         Writes the contents to a file in the repository.
 
@@ -80,6 +100,5 @@ class Repo:
             filename: The filename to query.
             text: The text to write.
         """
-        path = self._get_file(filename)
-        with open(path, "w") as f:
+        with open(os.path.join(self.dir, filename), "w") as f:
             f.write(text)

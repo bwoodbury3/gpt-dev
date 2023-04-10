@@ -25,35 +25,6 @@ $ python main.py \
 Created a static website with an `index.html`.
 
 ![before](img/readme-before.png "Before")
-```
-	<!DOCTYPE html>
-	<html>
-
-	<head>
-	  <title>Feature Request</title>
-	  <link rel="stylesheet" type="text/css" href="./css/style.css">
-	</head>
-
-	<body>
-	  <div class="card">
-	    <div class="card-header">
-	      <h3 class="card-title">Feature Request</h3>
-	    </div>
-	    <div class="card-body">
-	      <form>
-	        <div class="form-group">
-	          <label for="featureRequest">Submit feature request</label>
-	          <input type="text" id="featureRequest" name="featureRequest" class="form-control">
-	        </div>
-	        <button type="submit" class="btn btn-primary">Go</button>
-	      </form>
-	    </div>
-	  </div>
-	  <script type="text/javascript" src="./js/app.js"></script>
-	</body>
-
-	</html>
-```
 
 Running gpt-dev against that repository to add a new button.
 ```
@@ -69,34 +40,4 @@ OUTPUT FILE:
 ```
 
 ![after](img/readme-after.png "After")
-```
-	<!DOCTYPE html>
-	<html>
-
-	<head>
-	  <title>Feature Request</title>
-	  <link rel="stylesheet" type="text/css" href="./css/style.css">
-	</head>
-
-	<body>
-	  <div class="card">
-	    <div class="card-header">
-	      <h3 class="card-title">Feature Request</h3>
-	    </div>
-	    <div class="card-body">
-	      <form>
-	        <div class="form-group">
-	          <label for="featureRequest">Submit feature request</label>
-	          <input type="text" id="featureRequest" name="featureRequest" class="form-control">
-	        </div>
-	        <button type="submit" class="btn btn-primary">Go</button>
-	        <button type="button" class="btn btn-success">Back</button>
-	      </form>
-	    </div>
-	  </div>
-	  <script type="text/javascript" src="./js/app.js"></script>
-	</body>
-
-	</html>
-```
 

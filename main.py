@@ -1,7 +1,9 @@
 import argparse
 from argparse import Namespace as Args
+import mimetypes
 import openai
-from repo import Repo
+from repo import GithubRepo
+import time
 
 API_KEY_PATH = "../secret/openai.key"
 API_KEY = None
@@ -10,9 +12,14 @@ The API key for OpenAI.
 """
 
 
-class BaseModel:
+class EditModel:
     name = "code-davinci-edit-001"
     temperature = 0.7
+
+
+class FilesModel:
+    name = "text-davinci-003"
+    temperature = 0.2
 
 
 def read_api_key(path: str = API_KEY_PATH) -> str:
@@ -27,63 +34,107 @@ def read_api_key(path: str = API_KEY_PATH) -> str:
         raise e
 
 
-def try_feature_request(args: Args):
+def is_text_file(path: str):
+    """
+    Checks whether the file is a text file.
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return True
+    except UnicodeDecodeError:
+        return False
+
+
+def get_relevant_files(instruction: str, files: list) -> list:
+    """
+    Ask OpenAI which files in a repository are relevant to this query.
+
+    Args:
+        instruction: The instruction query.
+        files: The full list of files in the repository.
+    """
+    full_prompt = (
+        f"List only the files relevant to this query as a comma separated list. "
+        f'Query="{instruction}", Files={files}'
+    )
+    resp = openai.Completion.create(
+        model=FilesModel.name,
+        prompt=full_prompt,
+        max_tokens=500,
+        temperature=FilesModel.temperature,
+        presence_penalty=2.0,
+    )
+    text = resp.choices[0].text
+    out = [path.strip().replace("'", "").replace('"', "") for path in text.split(",")]
+    return out
+
+
+def try_feature_request(issue: dict, instruction: str, repo: GithubRepo):
     """
     Try to execute a feature request from a prompt.
     """
-    repo = Repo(args.repo_path)
-    file_to_modify = args.file_to_modify
+    files = repo.files
+    relevant_files = get_relevant_files(instruction, files)
 
-    input_text = repo.read(file_to_modify)
-    instruction = args.feature
+    for filename in relevant_files:
+        # TODO: DALL-E integration for image files, lol.
+        if not is_text_file(filename):
+            continue
 
-    print("INPUT FILE:")
-    for line in input_text.split("\n"):
-        print(f"\t{line}")
+        input_text = repo.read(filename)
 
-    resp = openai.Edit.create(
-        model=args.model,
-        input=input_text,
-        instruction=instruction,
-    )
+        print(f"INPUT FILE: {filename}")
+        for line in input_text.split("\n"):
+            print(f"\t{line}")
 
-    output_text = resp.choices[0].text
+        resp = openai.Edit.create(
+            model=EditModel.name,
+            input=input_text,
+            instruction=instruction,
+        )
 
-    print("OUTPUT FILE:")
-    for line in output_text.split("\n"):
-        print(f"\t{line}")
+        output_text = resp.choices[0].text
 
-    repo.write(file_to_modify, output_text)
+        print(f"OUTPUT FILE: {filename}")
+        for line in output_text.split("\n"):
+            print(f"\t{line}")
+
+        repo.write(filename, output_text)
+
+
+def poll_issues(repo: GithubRepo, interval: float = 1) -> list:
+    """
+    Poll github for issues.
+
+    Args:
+        repo: The repository.
+        interval: The interval in seconds.
+    """
+    while True:
+        issues = repo.get_issues()
+        if len(issues) > 0:
+            return issues
+        time.sleep(interval)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Process repository path")
 
     # Add an argument to the parser for the repository path.
-    parser.add_argument(
-        "--repo-path", type=str, required=True, help="path to repository"
-    )
-    parser.add_argument(
-        "--model",
-        type=str,
-        help="the name of the model to use",
-        default=BaseModel.name,
-    )
-    parser.add_argument(
-        "--feature", type=str, required=True, help="The feature you want to add."
-    )
-    parser.add_argument(
-        "--file-to-modify",
-        type=str,
-        help="The file you want to modify",
-        default="public/index.html",
-    )
+    parser.add_argument("--url", type=str, required=True, help="The github repo URL")
 
     # Parse the arguments from the command line
     args: Args = parser.parse_args()
-    try_feature_request(args)
 
-    # print(openai.Model.list())
+    repo = GithubRepo(args.url)
+    repo.checkout("/tmp/checkout")
+
+    # TODO: Call this in a loop.
+    issues = poll_issues(repo)
+    issue = issues[0]
+    query = f"{issue['title']}: {issue['body']}"
+    print(f"Tackling issue: {query}")
+    try_feature_request(issue, query, repo)
 
 
 if __name__ == "__main__":
