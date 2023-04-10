@@ -70,7 +70,7 @@ def get_relevant_files(instruction: str, files: list) -> list:
     return out
 
 
-def try_feature_request(issue: dict, instruction: str, repo: GithubRepo):
+def try_feature_request(instruction: str, repo: GithubRepo):
     """
     Try to execute a feature request from a prompt.
     """
@@ -102,6 +102,28 @@ def try_feature_request(issue: dict, instruction: str, repo: GithubRepo):
         repo.write(filename, output_text)
 
 
+def get_commit_message(instruction: str):
+    """
+    Ask OpenAI to write a commit message.
+
+    Args:
+        instruction: The instruction query.
+    """
+    full_prompt = (
+        f"Write a commit message for code that resolved this issue: {instruction}"
+    )
+    resp = openai.Completion.create(
+        model=FilesModel.name,
+        prompt=full_prompt,
+        max_tokens=500,
+        temperature=FilesModel.temperature,
+        presence_penalty=2.0,
+    )
+    msg = resp.choices[0].text
+    print(f"Commit message: {msg}")
+    return msg
+
+
 def poll_issues(repo: GithubRepo, interval: float = 1) -> list:
     """
     Poll github for issues.
@@ -127,14 +149,18 @@ def main():
     args: Args = parser.parse_args()
 
     repo = GithubRepo(args.url)
-    repo.checkout("/tmp/checkout")
+    repo.clone("/tmp/checkout")
 
     # TODO: Call this in a loop.
     issues = poll_issues(repo)
     issue = issues[0]
     query = f"{issue['title']}: {issue['body']}"
     print(f"Tackling issue: {query}")
-    try_feature_request(issue, query, repo)
+
+    repo.new_branch()
+    try_feature_request(query, repo)
+    commit_msg = get_commit_message(query)
+    repo.commit_and_push(commit_msg)
 
 
 if __name__ == "__main__":
