@@ -61,7 +61,7 @@ class GithubRepo:
 
         # Clone the repository into the given directory
         result = subprocess.run(
-            ["git", "clone", self.url, self.dir],
+            ["git", "clone", self.url, dir],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )

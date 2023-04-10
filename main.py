@@ -40,6 +40,7 @@ def is_text_file(path: str):
     """
     try:
         with open(path, "r", encoding="utf-8") as f:
+            f.read()
             return True
     except UnicodeDecodeError:
         return False
@@ -81,9 +82,8 @@ def try_feature_request(issue: dict, instruction: str, repo: GithubRepo):
         if not is_text_file(filename):
             continue
 
-        input_text = repo.read(filename)
-
         print(f"INPUT FILE: {filename}")
+        input_text = repo.read(filename)
         for line in input_text.split("\n"):
             print(f"\t{line}")
 
